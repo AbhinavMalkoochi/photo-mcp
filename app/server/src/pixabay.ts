@@ -1,4 +1,4 @@
-import { McpError } from "@modelcontextprotocol/sdk/types.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { serverConfig } from "./config.js";
 import {
   PixabayHit,
@@ -64,18 +64,18 @@ export class PixabayClient {
       const message = await this.safeReadError(response);
       if (response.status === 401 || response.status === 403) {
         throw new McpError(
-          "InternalError",
+          ErrorCode.InternalError,
           "Pixabay authentication failed. Verify PIXABAY_API_KEY."
         );
       }
       if (response.status === 429) {
         throw new McpError(
-          "InternalError",
+          ErrorCode.InternalError,
           "Pixabay rate limit exceeded. Please wait a moment before trying again."
         );
       }
       throw new McpError(
-        "InternalError",
+        ErrorCode.InternalError,
         `Pixabay request failed (${response.status}): ${message}`
       );
     }

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { McpError } from "@modelcontextprotocol/sdk/types.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { promises as fs } from "node:fs";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -148,7 +148,7 @@ async function main() {
         const errorMessage = parsed.error.issues
           .map((issue) => issue.message)
           .join("; ");
-        throw new McpError("InvalidParams", errorMessage);
+        throw new McpError(ErrorCode.InvalidParams, errorMessage);
       }
 
       const input = parsed.data;

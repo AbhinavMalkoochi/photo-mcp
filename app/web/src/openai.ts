@@ -174,14 +174,6 @@ export function resetWidgetState() {
   const openai = getOpenAi();
   void openai.setWidgetState(null);
 }
-      if (!openai) return;
-      void openai.setWidgetState(next);
-    },
-    [openai]
-  );
-
-  return [state, setState] as const;
-}
 
 export function openExternalLink(href: string) {
   const openai = getOpenAi();

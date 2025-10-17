@@ -38,7 +38,7 @@ export function ImageGalleryWidget() {
       return;
     }
     if (!results.some((item) => item.id === focusedImageId)) {
-      setWidgetState(() => ({ focusedImageId: null }));
+      setWidgetState(() => null);
     }
   }, [focusedImageId, results, setWidgetState]);
 
@@ -204,7 +204,7 @@ export function ImageGalleryWidget() {
                 <button
                   ref={closeButtonRef}
                   type="button"
-                  onClick={() => setWidgetState(() => ({ focusedImageId: null }))}
+                  onClick={() => setWidgetState(() => null)}
                   style={pillButtonStyle}
                 >
                   Close
