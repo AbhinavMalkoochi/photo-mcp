@@ -62,6 +62,18 @@ export class PixabayClient {
 
     if (!response.ok) {
       const message = await this.safeReadError(response);
+      if (response.status === 401 || response.status === 403) {
+        throw new McpError(
+          "InternalError",
+          "Pixabay authentication failed. Verify PIXABAY_API_KEY."
+        );
+      }
+      if (response.status === 429) {
+        throw new McpError(
+          "InternalError",
+          "Pixabay rate limit exceeded. Please wait a moment before trying again."
+        );
+      }
       throw new McpError(
         "InternalError",
         `Pixabay request failed (${response.status}): ${message}`
