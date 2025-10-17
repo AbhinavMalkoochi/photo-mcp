@@ -33,17 +33,48 @@ const RATE_LIMIT_HEADERS = {
   reset: "x-ratelimit-reset",
 } as const;
 
+const SUPPORTED_LANGS = new Set([
+  "cs",
+  "da",
+  "de",
+  "en",
+  "es",
+  "fr",
+  "id",
+  "it",
+  "hu",
+  "nl",
+  "no",
+  "pl",
+  "pt",
+  "ro",
+  "sk",
+  "fi",
+  "sv",
+  "tr",
+  "vi",
+  "th",
+  "bg",
+  "ru",
+  "el",
+  "ja",
+  "ko",
+  "zh",
+]);
+
 export class PixabayClient {
   async searchImages(
     params: SearchImagesParams,
     { signal }: { signal?: AbortSignal } = {}
   ): Promise<PixabaySearchResult> {
+    const lang = resolveLanguage(params.locale);
+
     const searchParams = new URLSearchParams({
       key: serverConfig.pixabayApiKey,
       q: params.query,
       safesearch: String(params.safesearch ?? true),
       per_page: String(params.per_page ?? serverConfig.defaultPerPage),
-      lang: params.locale ?? serverConfig.defaultLocale,
+      lang,
       image_type: "photo",
       orientation: params.orientation ?? "all",
     });
@@ -142,4 +173,17 @@ function parseHeader(value: string | null): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function resolveLanguage(locale: string | undefined): string {
+  if (!locale) {
+    return serverConfig.defaultLocale;
+  }
+
+  const candidate = locale.split(/[-_]/)[0]?.toLowerCase();
+  if (candidate && SUPPORTED_LANGS.has(candidate)) {
+    return candidate;
+  }
+
+  return serverConfig.defaultLocale;
 }
