@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   openExternalLink,
@@ -103,20 +103,21 @@ const videoMetaTextStyle: CSSProperties = {
 };
 
 const ctaButtonStyle: CSSProperties = {
-  background: "var(--openai-color-accent, #1456ff)",
-  color: "#ffffff",
-  border: "none",
-  borderRadius: "999px",
-  padding: "10px 18px",
-  fontSize: "0.85rem",
-  fontWeight: 600,
+  background: "rgba(15, 23, 42, 0.06)",
+  color: "var(--openai-color-text-secondary, #334155)",
+  border: "1px solid var(--openai-color-border-subtle, #d8dce5)",
+  borderRadius: "10px",
+  padding: "8px 14px",
+  fontSize: "0.8rem",
+  fontWeight: 500,
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: "6px",
+  gap: "4px",
   letterSpacing: "0.01em",
-  boxShadow: "0 12px 30px rgba(20, 86, 255, 0.22)",
+  boxShadow: "none",
+  transition: "background 0.2s ease, border-color 0.2s ease, color 0.2s ease",
 };
 
 const chipRowStyle: CSSProperties = {
@@ -205,9 +206,23 @@ export function ImageGalleryWidget() {
   const hasVideos = videos.length > 0;
   const isEmpty = toolOutput && !hasImages && !hasVideos;
 
+  const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const nextId =
+      widgetState?.activeVideoId ??
+      (videos.length > 0 ? videos[0]?.id ?? null : null);
+    setActiveVideoId((current) => {
+      if (current === nextId) {
+        return current;
+      }
+      return nextId;
+    });
+  }, [widgetState?.activeVideoId, videos]);
+
   const selectedVideo = useMemo(() => {
     if (!videos.length) return null;
-    const activeId = widgetState?.activeVideoId;
+    const activeId = activeVideoId;
     if (activeId != null) {
       const match = videos.find((video) => video.id === activeId);
       if (match) {
@@ -215,10 +230,11 @@ export function ImageGalleryWidget() {
       }
     }
     return videos[0];
-  }, [videos, widgetState?.activeVideoId]);
+  }, [videos, activeVideoId]);
 
   const handleVideoSelect = useCallback(
     (id: number) => {
+      setActiveVideoId(id);
       setWidgetState((prev) => {
         const base = ensureWidgetState(prev);
         if (base.activeVideoId === id) {
@@ -415,6 +431,7 @@ function VideoSection({ videos, selectedVideo, onSelectVideo }: VideoSectionProp
     >
       <div style={{ ...videoWrapperStyle, aspectRatio }}>
         <video
+          key={selectedVideo.id}
           controls
           poster={selectedVideo.previewImageUrl ?? undefined}
           style={videoElementStyle}
@@ -461,8 +478,31 @@ function VideoSection({ videos, selectedVideo, onSelectVideo }: VideoSectionProp
           type="button"
           onClick={() => openExternalLink(selectedVideo.pageUrl)}
           style={ctaButtonStyle}
+          onMouseEnter={(event) => {
+            event.currentTarget.style.background = "rgba(15, 23, 42, 0.12)";
+            event.currentTarget.style.borderColor =
+              "var(--openai-color-border-strong, #c3c9d4)";
+          }}
+          onMouseLeave={(event) => {
+            event.currentTarget.style.background = "rgba(15, 23, 42, 0.06)";
+            event.currentTarget.style.borderColor =
+              "var(--openai-color-border-subtle, #d8dce5)";
+          }}
+          onFocus={(event) => {
+            event.currentTarget.style.background = "rgba(15, 23, 42, 0.12)";
+            event.currentTarget.style.borderColor =
+              "var(--openai-color-border-strong, #c3c9d4)";
+          }}
+          onBlur={(event) => {
+            event.currentTarget.style.background = "rgba(15, 23, 42, 0.06)";
+            event.currentTarget.style.borderColor =
+              "var(--openai-color-border-subtle, #d8dce5)";
+          }}
         >
           View on Pixabay
+          <span aria-hidden="true" style={{ fontSize: "0.9em" }}>
+            ↗
+          </span>
         </button>
       </div>
       {videos.length > 1 ? (

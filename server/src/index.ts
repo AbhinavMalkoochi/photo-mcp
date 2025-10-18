@@ -14,18 +14,18 @@ import {
 import { PixabayClient } from "./pixabay.js";
 
 const PACKAGE_VERSION = "0.1.0";
-const IMAGE_TOOL_NAME = "search_pixabay_images";
-const IMAGE_TOOL_TITLE = "Search Pixabay Images";
+const IMAGE_TOOL_NAME = "get_internet_images";
+const IMAGE_TOOL_TITLE = "Get Internet Images";
 const IMAGE_TOOL_DESCRIPTION =
-  "Finds royalty-free images from Pixabay that match the user's search query.";
-const VIDEO_TOOL_NAME = "search_pixabay_videos";
-const VIDEO_TOOL_TITLE = "Search Pixabay Videos";
+  "Retrieves royalty-free images from trusted internet sources (powered by Pixabay) that match the user's description.";
+const VIDEO_TOOL_NAME = "get_internet_videos";
+const VIDEO_TOOL_TITLE = "Get Internet Videos";
 const VIDEO_TOOL_DESCRIPTION =
-  "Finds royalty-free videos from Pixabay that match the user's search query.";
+  "Retrieves royalty-free web videos (powered by Pixabay) that match the user's description and play inline.";
 const RESOURCE_NAME = "pixabay-image-gallery";
 const OUTPUT_TEMPLATE_URI = "ui://widget/pixabay-image-gallery.html";
 const WIDGET_DESCRIPTION =
-  "Displays a responsive media gallery of Pixabay images and videos with captions, attribution, and links.";
+  "Displays an inline gallery of royalty-free images and videos sourced from the web with playback controls and attribution.";
 
 const __dirname = dirname(fileURLToPath(new URL(import.meta.url)));
 const WEB_DIST_DIR = resolvePath(__dirname, "../../web/dist");
@@ -198,7 +198,7 @@ async function main() {
       inputSchema: searchImagesInputSchema.shape,
       _meta: {
         "openai/outputTemplate": OUTPUT_TEMPLATE_URI,
-        "openai/toolInvocation/invoking": "Searching Pixabay images…",
+        "openai/toolInvocation/invoking": "Gathering images from the web…",
         "openai/toolInvocation/invoked": "Images ready.",
       },
     },
@@ -268,7 +268,7 @@ async function main() {
       inputSchema: searchImagesInputSchema.shape,
       _meta: {
         "openai/outputTemplate": OUTPUT_TEMPLATE_URI,
-        "openai/toolInvocation/invoking": "Searching Pixabay videos…",
+        "openai/toolInvocation/invoking": "Gathering videos from the web…",
         "openai/toolInvocation/invoked": "Videos ready.",
       },
     },
@@ -403,8 +403,8 @@ function buildSummary(content: MediaSearchStructuredContent): string {
       descriptors.length === 1
         ? descriptors[0]
         : `${descriptors.slice(0, -1).join(", ")} and ${descriptors.slice(-1)}`;
-    return `Found ${joined} on Pixabay for "${query}".`;
+    return `Found ${joined} on the web for "${query}" (via Pixabay).`;
   }
 
-  return `No Pixabay media found for "${query}". Try a different description or add more detail.`;
+  return `No matching media found on the web for "${query}". Try a different description or add more detail.`;
 }
