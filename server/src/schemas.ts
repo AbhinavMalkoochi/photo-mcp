@@ -35,7 +35,10 @@ export const pixabayHitSchema = z.object({
   tags: z.string(),
   user: z.string(),
   user_id: z.number(),
-  userImageURL: z.string().url().optional().nullable(),
+  userImageURL: z
+    .union([z.string().url(), z.literal(""), z.null()])
+    .optional()
+    .nullable(),
   likes: z.number(),
   downloads: z.number(),
 });

@@ -23,7 +23,7 @@ const WIDGET_DESCRIPTION =
   "Displays a responsive grid of Pixabay images with captions, attribution, and links.";
 
 const __dirname = dirname(fileURLToPath(new URL(import.meta.url)));
-const WEB_DIST_DIR = resolvePath(__dirname, "../web/dist");
+const WEB_DIST_DIR = resolvePath(__dirname, "../../web/dist");
 const SCRIPT_FILENAME = "component.js";
 const STYLE_FILENAME = "component.css";
 
