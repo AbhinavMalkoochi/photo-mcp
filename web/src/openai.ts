@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import type {
-  ImageSearchStructuredContent,
+  MediaSearchStructuredContent,
   SearchImagesInput,
   WidgetState,
 } from "./types.js";
@@ -44,7 +44,7 @@ type WidgetGlobals = {
   displayMode: DisplayMode;
   safeArea: SafeArea;
   toolInput: SearchImagesInput | null;
-  toolOutput: ImageSearchStructuredContent | null;
+  toolOutput: MediaSearchStructuredContent | null;
   toolResponseMetadata: Record<string, unknown> | null;
   widgetState: WidgetState | null;
 };
@@ -128,7 +128,7 @@ export function useOpenAiGlobal<K extends keyof WidgetGlobals>(
   return useSyncExternalStore(subscribe, getSnapshot, () => defaultGlobals[key]);
 }
 
-export function useToolOutput(): ImageSearchStructuredContent | null {
+export function useToolOutput(): MediaSearchStructuredContent | null {
   return useOpenAiGlobal("toolOutput");
 }
 

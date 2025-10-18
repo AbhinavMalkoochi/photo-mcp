@@ -25,7 +25,7 @@ export const searchImagesInputSchema = z
 
 export type SearchImagesInput = z.infer<typeof searchImagesInputSchema>;
 
-export const pixabayHitSchema = z.object({
+export const pixabayImageHitSchema = z.object({
   id: z.number(),
   pageURL: z.string().url(),
   previewURL: z.string().url(),
@@ -43,7 +43,44 @@ export const pixabayHitSchema = z.object({
   downloads: z.number(),
 });
 
-export type PixabayHit = z.infer<typeof pixabayHitSchema>;
+export type PixabayImageHit = z.infer<typeof pixabayImageHitSchema>;
+
+const urlOrEmpty = z.string().url().or(z.literal(""));
+
+const pixabayVideoRenditionSchema = z.object({
+  url: urlOrEmpty,
+  width: z.number(),
+  height: z.number(),
+  size: z.number().optional(),
+  thumbnail: urlOrEmpty.optional(),
+});
+
+export const pixabayVideoHitSchema = z.object({
+  id: z.number(),
+  pageURL: z.string().url(),
+  tags: z.string(),
+  duration: z.number().int().nonnegative(),
+  type: z.string(),
+  videos: z
+    .object({
+      large: pixabayVideoRenditionSchema.optional(),
+      medium: pixabayVideoRenditionSchema.optional(),
+      small: pixabayVideoRenditionSchema.optional(),
+      tiny: pixabayVideoRenditionSchema.optional(),
+    })
+    .strict(),
+  user: z.string(),
+  user_id: z.number(),
+  userImageURL: z
+    .union([z.string().url(), z.literal(""), z.null()])
+    .optional()
+    .nullable(),
+  views: z.number().optional(),
+  downloads: z.number().optional(),
+  likes: z.number().optional(),
+});
+
+export type PixabayVideoHit = z.infer<typeof pixabayVideoHitSchema>;
 
 export type ImageResult = {
   id: number;
@@ -61,9 +98,28 @@ export type ImageResult = {
   downloads: number;
 };
 
-export type ImageSearchStructuredContent = {
+export type VideoResult = {
+  id: number;
+  pageUrl: string;
+  videoUrl: string;
+  previewImageUrl: string | null;
+  width: number | null;
+  height: number | null;
+  durationSeconds: number;
+  tags: string[];
+  creator: {
+    name: string;
+    profileUrl: string;
+  };
+  likes: number | null;
+  downloads: number | null;
+};
+
+export type MediaSearchStructuredContent = {
   query: string;
-  resultCount: number;
-  results: ImageResult[];
+  imageCount: number;
+  videoCount: number;
+  images: ImageResult[];
+  videos: VideoResult[];
   attribution: string;
 };

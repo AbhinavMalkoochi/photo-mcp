@@ -14,10 +14,29 @@ export type ImageResult = {
   downloads: number;
 };
 
-export type ImageSearchStructuredContent = {
+export type VideoResult = {
+  id: number;
+  pageUrl: string;
+  videoUrl: string;
+  previewImageUrl: string | null;
+  width: number | null;
+  height: number | null;
+  durationSeconds: number;
+  tags: string[];
+  creator: {
+    name: string;
+    profileUrl: string;
+  };
+  likes: number | null;
+  downloads: number | null;
+};
+
+export type MediaSearchStructuredContent = {
   query: string;
-  resultCount: number;
-  results: ImageResult[];
+  imageCount: number;
+  videoCount: number;
+  images: ImageResult[];
+  videos: VideoResult[];
   attribution: string;
 };
 
@@ -30,4 +49,5 @@ export type SearchImagesInput = {
 
 export type WidgetState = {
   focusedImageId: number | null;
+  activeVideoId: number | null;
 };

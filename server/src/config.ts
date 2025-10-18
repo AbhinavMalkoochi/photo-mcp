@@ -13,6 +13,7 @@ for (const key of REQUIRED_ENV_VARS) {
 export const serverConfig = {
   pixabayApiKey: process.env.PIXABAY_API_KEY!.trim(),
   pixabayBaseUrl: "https://pixabay.com/api/",
+  pixabayVideoBaseUrl: "https://pixabay.com/api/videos/",
   defaultLocale: "en",
   defaultPerPage: 6,
   maxPerPage: 20,

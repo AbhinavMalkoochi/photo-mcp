@@ -7,21 +7,25 @@ import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { serverConfig } from "./config.js";
 import {
-  ImageSearchStructuredContent,
+  MediaSearchStructuredContent,
   SearchImagesInput,
   searchImagesInputSchema,
 } from "./schemas.js";
 import { PixabayClient } from "./pixabay.js";
 
 const PACKAGE_VERSION = "0.1.0";
-const TOOL_NAME = "search_pixabay_images";
-const TOOL_TITLE = "Search Pixabay Images";
-const TOOL_DESCRIPTION =
+const IMAGE_TOOL_NAME = "search_pixabay_images";
+const IMAGE_TOOL_TITLE = "Search Pixabay Images";
+const IMAGE_TOOL_DESCRIPTION =
   "Finds royalty-free images from Pixabay that match the user's search query.";
+const VIDEO_TOOL_NAME = "search_pixabay_videos";
+const VIDEO_TOOL_TITLE = "Search Pixabay Videos";
+const VIDEO_TOOL_DESCRIPTION =
+  "Finds royalty-free videos from Pixabay that match the user's search query.";
 const RESOURCE_NAME = "pixabay-image-gallery";
 const OUTPUT_TEMPLATE_URI = "ui://widget/pixabay-image-gallery.html";
 const WIDGET_DESCRIPTION =
-  "Displays a responsive grid of Pixabay images with captions, attribution, and links.";
+  "Displays a responsive media gallery of Pixabay images and videos with captions, attribution, and links.";
 
 const __dirname = dirname(fileURLToPath(new URL(import.meta.url)));
 const WEB_DIST_DIR = resolvePath(__dirname, "../../web/dist");
@@ -92,15 +96,24 @@ function resolveLocale(meta: unknown): string {
   return defaultLocale;
 }
 
-function toStructuredContent(
-  input: SearchImagesInput,
-  result: Awaited<ReturnType<PixabayClient["searchImages"]>>
-): ImageSearchStructuredContent {
+type StructuredContentArgs = {
+  input: SearchImagesInput;
+  imageResult?: Awaited<ReturnType<PixabayClient["searchImages"]>>;
+  videoResult?: Awaited<ReturnType<PixabayClient["searchVideos"]>>;
+};
+
+function toStructuredContent({
+  input,
+  imageResult,
+  videoResult,
+}: StructuredContentArgs): MediaSearchStructuredContent {
   return {
     query: input.query,
-    resultCount: result.results.length,
-    results: result.results,
-    attribution: "Images provided by Pixabay under the Pixabay License.",
+    imageCount: imageResult?.results.length ?? 0,
+    videoCount: videoResult?.results.length ?? 0,
+    images: imageResult?.results ?? [],
+    videos: videoResult?.results ?? [],
+    attribution: "Media provided by Pixabay under the Pixabay License.",
   };
 }
 
@@ -178,14 +191,14 @@ async function main() {
   );
 
   server.registerTool(
-    TOOL_NAME,
+    IMAGE_TOOL_NAME,
     {
-      title: TOOL_TITLE,
-      description: TOOL_DESCRIPTION,
+      title: IMAGE_TOOL_TITLE,
+      description: IMAGE_TOOL_DESCRIPTION,
       inputSchema: searchImagesInputSchema.shape,
       _meta: {
         "openai/outputTemplate": OUTPUT_TEMPLATE_URI,
-        "openai/toolInvocation/invoking": "Searching Pixabay…",
+        "openai/toolInvocation/invoking": "Searching Pixabay images…",
         "openai/toolInvocation/invoked": "Images ready.",
       },
     },
@@ -206,7 +219,7 @@ async function main() {
         query: normalizeQuery(input.query),
       };
 
-      const searchResult = await pixabayClient.searchImages(
+      const imageResult = await pixabayClient.searchImages(
         {
           ...normalizedInput,
           locale,
@@ -214,14 +227,21 @@ async function main() {
         { signal: extra.signal }
       );
 
-      const structuredContent = toStructuredContent(normalizedInput, searchResult);
+      const structuredContent = toStructuredContent({
+        input: normalizedInput,
+        imageResult,
+      });
 
-      const summary =
-        structuredContent.resultCount > 0
-          ? `Found ${structuredContent.resultCount} Pixabay image${
-              structuredContent.resultCount === 1 ? "" : "s"
-            } for "${structuredContent.query}".`
-          : `No Pixabay images found for "${structuredContent.query}". Try a different description or add more detail.`;
+      const summary = buildSummary(structuredContent);
+
+      const rateLimit: Record<string, unknown> = {};
+      if (imageResult.rateLimit) {
+        rateLimit.images = imageResult.rateLimit;
+      }
+
+      const totalHits: Record<string, unknown> = {
+        images: imageResult.totalHits,
+      };
 
       return {
         content: [
@@ -233,7 +253,78 @@ async function main() {
         structuredContent,
         _meta: {
           "openai/locale": locale,
-          rateLimit: searchResult.rateLimit,
+          rateLimit,
+          totalHits,
+        },
+      };
+    }
+  );
+
+  server.registerTool(
+    VIDEO_TOOL_NAME,
+    {
+      title: VIDEO_TOOL_TITLE,
+      description: VIDEO_TOOL_DESCRIPTION,
+      inputSchema: searchImagesInputSchema.shape,
+      _meta: {
+        "openai/outputTemplate": OUTPUT_TEMPLATE_URI,
+        "openai/toolInvocation/invoking": "Searching Pixabay videos…",
+        "openai/toolInvocation/invoked": "Videos ready.",
+      },
+    },
+    async (rawInput, extra) => {
+      const locale = resolveLocale(extra._meta);
+      const parsed = searchImagesInputSchema.safeParse(rawInput);
+
+      if (!parsed.success) {
+        const errorMessage = parsed.error.issues
+          .map((issue) => issue.message)
+          .join("; ");
+        throw new McpError(ErrorCode.InvalidParams, errorMessage);
+      }
+
+      const input = parsed.data;
+      const normalizedInput: SearchImagesInput = {
+        ...input,
+        query: normalizeQuery(input.query),
+      };
+
+      const videoResult = await pixabayClient.searchVideos(
+        {
+          ...normalizedInput,
+          locale,
+        },
+        { signal: extra.signal }
+      );
+
+      const structuredContent = toStructuredContent({
+        input: normalizedInput,
+        videoResult,
+      });
+
+      const summary = buildSummary(structuredContent);
+
+      const rateLimit: Record<string, unknown> = {};
+      if (videoResult.rateLimit) {
+        rateLimit.videos = videoResult.rateLimit;
+      }
+
+      const totalHits: Record<string, unknown> = {
+        videos: videoResult.totalHits,
+      };
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: summary,
+          },
+        ],
+        structuredContent,
+        _meta: {
+          "openai/locale": locale,
+          rateLimit,
+          totalHits,
         },
       };
     }
@@ -295,3 +386,25 @@ main().catch((error) => {
   console.error("Server failed to start:", error);
   process.exit(1);
 });
+
+function buildSummary(content: MediaSearchStructuredContent): string {
+  const { imageCount, videoCount, query } = content;
+
+  const descriptors: string[] = [];
+  if (imageCount > 0) {
+    descriptors.push(`${imageCount} image${imageCount === 1 ? "" : "s"}`);
+  }
+  if (videoCount > 0) {
+    descriptors.push(`${videoCount} video${videoCount === 1 ? "" : "s"}`);
+  }
+
+  if (descriptors.length > 0) {
+    const joined =
+      descriptors.length === 1
+        ? descriptors[0]
+        : `${descriptors.slice(0, -1).join(", ")} and ${descriptors.slice(-1)}`;
+    return `Found ${joined} on Pixabay for "${query}".`;
+  }
+
+  return `No Pixabay media found for "${query}". Try a different description or add more detail.`;
+}
