@@ -103,6 +103,35 @@ function toStructuredContent(
   };
 }
 
+function normalizeQuery(query: string): string {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return query;
+  }
+
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === "string") {
+        return parsed.trim() || query;
+      }
+      if (parsed && typeof parsed === "object") {
+        const nestedQuery = (parsed as Record<string, unknown>).query;
+        if (typeof nestedQuery === "string" && nestedQuery.trim().length > 0) {
+          return nestedQuery.trim();
+        }
+      }
+    } catch {
+      // Ignore JSON parse failures and fall back to the original string
+    }
+  }
+
+  return trimmed;
+}
+
 async function main() {
   const server = new McpServer({
     name: "pixabay-image-mcp",
@@ -152,16 +181,20 @@ async function main() {
       }
 
       const input = parsed.data;
+      const normalizedInput: SearchImagesInput = {
+        ...input,
+        query: normalizeQuery(input.query),
+      };
 
       const searchResult = await pixabayClient.searchImages(
         {
-          ...input,
+          ...normalizedInput,
           locale,
         },
         { signal: extra.signal }
       );
 
-      const structuredContent = toStructuredContent(input, searchResult);
+      const structuredContent = toStructuredContent(normalizedInput, searchResult);
 
       const summary =
         structuredContent.resultCount > 0
