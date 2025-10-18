@@ -1,8 +1,9 @@
-import { memo, useMemo } from "react";
+import { memo } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { openExternalLink, useOpenAiGlobal, useToolOutput } from "../openai.js";
 import type { ImageResult } from "../types.js";
 
-const srOnlyStyle: React.CSSProperties = {
+const srOnlyStyle: CSSProperties = {
   position: "absolute",
   width: "1px",
   height: "1px",
@@ -14,7 +15,7 @@ const srOnlyStyle: React.CSSProperties = {
   border: 0,
 };
 
-const tileButtonBase: React.CSSProperties = {
+const tileButtonBase: CSSProperties = {
   position: "relative",
   width: "100%",
   border: "none",
@@ -26,7 +27,7 @@ const tileButtonBase: React.CSSProperties = {
   transition: "transform 0.2s ease, box-shadow 0.2s ease",
 };
 
-const overlayIconStyle: React.CSSProperties = {
+const overlayIconStyle: CSSProperties = {
   position: "absolute",
   top: "8px",
   right: "8px",
@@ -47,7 +48,7 @@ const overlayIconStyle: React.CSSProperties = {
   pointerEvents: "none",
 };
 
-const skeletonStyle: React.CSSProperties = {
+const skeletonStyle: CSSProperties = {
   borderRadius: "16px",
   width: "100%",
   height: "100%",
@@ -156,7 +157,7 @@ export function ImageGalleryWidget() {
 
 type GalleryGridProps = {
   template: string;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 function GalleryGrid({ template, children }: GalleryGridProps) {
@@ -187,8 +188,6 @@ const ImageTile = memo(function ImageTile({ image }: ImageTileProps) {
     openExternalLink(image.pageUrl);
   };
 
-  const altText = useMemo(() => buildAltText(image), [image]);
-
   return (
     <button
       type="button"
@@ -206,7 +205,7 @@ const ImageTile = memo(function ImageTile({ image }: ImageTileProps) {
     >
       <img
         src={image.previewUrl}
-        alt={altText}
+        alt={buildAltText(image)}
         loading="lazy"
         style={{
           width: "100%",
@@ -238,7 +237,7 @@ function revealIcon(target: EventTarget, show: boolean) {
   }
 }
 
-function getSkeletonContainerStyle(displayMode: string): React.CSSProperties {
+function getSkeletonContainerStyle(displayMode: string): CSSProperties {
   return {
     borderRadius: "16px",
     overflow: "hidden",
