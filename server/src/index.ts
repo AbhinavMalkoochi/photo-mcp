@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import express, { type Request } from "express";
 import { promises as fs } from "node:fs";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -132,6 +133,25 @@ function normalizeQuery(query: string): string {
   return trimmed;
 }
 
+function ensureAcceptHeader(req: Request) {
+  const acceptHeader = req.headers.accept ?? "";
+  console.log("Original Accept header:", acceptHeader || "<none>");
+  const tokens = acceptHeader
+    .split(",")
+    .map((part) => part.trim().toLowerCase())
+    .filter((part) => part.length > 0);
+
+  const required = ["application/json", "text/event-stream"];
+  for (const value of required) {
+    if (!tokens.includes(value)) {
+      tokens.push(value);
+    }
+  }
+
+  req.headers.accept = tokens.join(", ");
+  console.log("Normalized Accept header:", req.headers.accept);
+}
+
 async function main() {
   const server = new McpServer({
     name: "pixabay-image-mcp",
@@ -219,8 +239,56 @@ async function main() {
     }
   );
 
-  const transport = new StdioServerTransport();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
+
   await server.connect(transport);
+
+  const app = express();
+  app.disable("x-powered-by");
+
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
+  app.all("/mcp", async (req, res) => {
+    try {
+      ensureAcceptHeader(req);
+      console.log("Request Accept header:", req.headers.accept);
+      await transport.handleRequest(req, res);
+    } catch (error) {
+      console.error("Failed to handle MCP request:", error);
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .json({ jsonrpc: "2.0", error: { code: -32603, message: "Server error" } });
+      } else {
+        res.end();
+      }
+    }
+  });
+
+  app.use((_req, res) => {
+    res.status(404).json({ error: "Not Found" });
+  });
+
+  const port = Number.parseInt(process.env.PORT ?? "3333", 10);
+  const host = process.env.HOST ?? "0.0.0.0";
+
+  await new Promise<void>((resolve) => {
+    app.listen(port, host, () => {
+      const displayHost = host === "0.0.0.0" ? "127.0.0.1" : host;
+      console.log(
+        `Pixabay MCP server listening on http://${displayHost}:${port} (POST /mcp)`
+      );
+      console.log(
+        `Use a tunnel (e.g. ngrok http ${port}) and provide https://<domain>.ngrok.app/mcp to ChatGPT.`
+      );
+      resolve();
+    });
+  });
 }
 
 main().catch((error) => {
